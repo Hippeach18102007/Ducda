@@ -44,6 +44,11 @@ public class StudentController {
         model.addAttribute("classes", lopHocRepository.findAll());
         return "student-add";
     }
+    @GetMapping("/")
+    public String redirectToStudentList() {
+        return "redirect:/students/list";
+    }
+    
 
     @GetMapping("/delete/{id}")
     public String deleteStudent(@PathVariable Integer id, RedirectAttributes redirectAttributes) {
@@ -181,4 +186,5 @@ public class StudentController {
 
         return "redirect:/students/list";
     }
+
 }
