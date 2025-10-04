@@ -1,16 +1,13 @@
 package com.example.ASM1_DUCDATH04243_SD20202.Controller;
 
-
 import com.example.ASM1_DUCDATH04243_SD20202.Model.StudentDetailDTO;
 import com.example.ASM1_DUCDATH04243_SD20202.Model.StudentManager;
 import com.example.ASM1_DUCDATH04243_SD20202.Respository.LopHocRepository;
+import com.example.ASM1_DUCDATH04243_SD20202.Service.DiemService;
 import com.example.ASM1_DUCDATH04243_SD20202.Service.ExcelExportService;
 import com.example.ASM1_DUCDATH04243_SD20202.Service.StudentService;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -18,53 +15,80 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
-import java.util.Map; // Cần thiết cho Map<String, Object>
+import java.util.Map;
 
 @Controller
 @RequestMapping("/students")
 public class StudentController {
 
-    @Autowired
-    private StudentService studentService;
-
-    @Autowired
-    private LopHocRepository lopHocRepository;
-
-    @Autowired
-    private ExcelExportService excelExportService; // Đã sắp xếp lại vị trí
-
-    /** Hiển thị danh sách sinh viên */
+    @Autowired private StudentService studentService;
+    @Autowired private ExcelExportService excelExportService;
+    @Autowired private DiemService diemService;
+    @Autowired private LopHocRepository lopHocRepository;
 
 
-    /** Hiển thị form thêm sinh viên */
+    @GetMapping("/list")
+    public String showStudentList(Model model) {
+        model.addAttribute("students", studentService.getAllStudentDetails());
+        model.addAttribute("academicChartData", studentService.calculateOverallAcademicDistribution());
+        model.addAttribute("majorChartData", studentService.calculateMajorDistribution());
+        model.addAttribute("allMajors", diemService.getAllUniqueMajors());
+        model.addAttribute("allClasses", diemService.getAllClasses());
+        return "student-list";
+    }
+
+    @PostMapping("/upload-excel")
+    public String uploadExcelFile(@RequestParam("file") MultipartFile file, RedirectAttributes redirectAttributes) {
+        if (file.isEmpty()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Vui lòng chọn một file để tải lên.");
+            return "redirect:/students/list";
+        }
+        try {
+            // Nhận kết quả chi tiết từ service
+            Map<String, Object> result = studentService.importStudentsFromExcel(file);
+            int successCount = (int) result.get("successCount");
+            int failureCount = (int) result.get("failureCount");
+            List<String> errors = (List<String>) result.get("errors");
+
+            // Tạo thông báo dựa trên kết quả
+            if (failureCount == 0 && successCount > 0) {
+                redirectAttributes.addFlashAttribute("message", "Nhập thành công " + successCount + " sinh viên từ file Excel.");
+            } else {
+                String summaryMessage = "Hoàn tất import: " + successCount + " thành công, " + failureCount + " thất bại.";
+                redirectAttributes.addFlashAttribute("errorMessage", summaryMessage);
+                if (!errors.isEmpty()) {
+                    redirectAttributes.addFlashAttribute("importErrors", errors);
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi nghiêm trọng khi đọc file: " + e.getMessage());
+        }
+        return "redirect:/students/list";
+    }
+
+    // ======================================================================
+    // CÁC HÀM CRUD VÀ CHỨC NĂNG KHÁC (GIỮ NGUYÊN)
+    // ======================================================================
+
     @GetMapping("/add")
     public String showAddForm(Model model) {
         model.addAttribute("student", new StudentManager());
         model.addAttribute("classes", lopHocRepository.findAll());
         return "student-add";
     }
-//    @GetMapping("/")
-//    public String redirectToStudentList() {
-//        return "redirect:/students/list";
-//    }
 
-
-    @GetMapping("/delete/{id}")
-    public String deleteStudent(@PathVariable Integer id, RedirectAttributes redirectAttributes) {
-        studentService.deleteStudent(id);
-        redirectAttributes.addFlashAttribute("message", "Đã xóa sinh viên ID " + id + " thành công.");
-        return "redirect:/students/list";
-    }
-
-    /** Xử lý Submait Form Thêm Sinh viên */
     @PostMapping("/add")
     public String addStudent(@ModelAttribute StudentManager student, RedirectAttributes redirectAttributes) {
         try {
             studentService.saveNewStudent(student);
             redirectAttributes.addFlashAttribute("message", "Thêm sinh viên thành công!");
         } catch (IllegalStateException e) {
-            // Bắt lỗi khi lớp đã đầy
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
             redirectAttributes.addFlashAttribute("student", student);
             return "redirect:/students/add";
@@ -72,21 +96,17 @@ public class StudentController {
         return "redirect:/students/list";
     }
 
-    /** Hiển thị form sửa thông tin sinh viên */
     @GetMapping("/edit/{id}")
     public String showEditForm(@PathVariable Integer id, Model model) {
         StudentManager student = studentService.getStudentById(id);
-
         if (student == null) {
             return "redirect:/students/list";
         }
-
         model.addAttribute("student", student);
         model.addAttribute("classes", lopHocRepository.findAll());
         return "student-edit";
     }
 
-    /** Xử lý Submit Form Sửa Sinh viên */
     @PostMapping("/edit")
     public String editStudent(@ModelAttribute StudentManager student, RedirectAttributes redirectAttributes) {
         try {
@@ -99,92 +119,49 @@ public class StudentController {
         return "redirect:/students/list";
     }
 
-    /** * Hiển thị thông tin chi tiết của MỘT sinh viên.
-     * ĐÃ CẬP NHẬT: Thêm logic Dashboard học lực.
-     */
+    @GetMapping("/delete/{id}")
+    public String deleteStudent(@PathVariable Integer id, RedirectAttributes redirectAttributes) {
+        studentService.deleteStudent(id);
+        redirectAttributes.addFlashAttribute("message", "Đã xóa sinh viên ID " + id + " thành công.");
+        return "redirect:/students/list";
+    }
+
     @GetMapping("/detail/{id}")
     public String showStudentDetail(@PathVariable Integer id, Model model) {
         StudentDetailDTO studentDetail = studentService.getStudentDetailsById(id);
         if (studentDetail == null) {
-            return "redirect:/students/list"; // Hoặc trang 404
+            return "redirect:/students/list";
         }
-
-        // 1. Tính toán Dashboard học lực
         Map<String, Object> academicSummary = studentService.calculateAcademicSummary(studentDetail);
-
-        // 2. Thêm kết quả vào Model
         model.addAttribute("summary", academicSummary);
         model.addAttribute("student", studentDetail);
-
         return "student-detail";
     }
 
-    @GetMapping("/export-excel")
-    public ResponseEntity<ByteArrayResource> exportToExcel() throws IOException {
-        byte[] excelBytes = excelExportService.exportStudentDetailsToExcel();
-
-        String fileName = "BaoCaoSinhVien_Diem_" + System.currentTimeMillis() + ".xlsx";
-
-        ByteArrayResource resource = new ByteArrayResource(excelBytes);
-
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + fileName)
-                .contentLength(excelBytes.length)
-                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
-                .body(resource);
-    }
     @PostMapping("/assign-class/{id}")
     public String assignClassAutomatically(@PathVariable("id") Integer studentId, RedirectAttributes redirectAttributes) {
         try {
             String resultMessage = studentService.autoAssignClassForUnassignedStudent(studentId);
-
-            // Nếu kết quả là thành công
             if (resultMessage.startsWith("Đã xếp")) {
                 redirectAttributes.addFlashAttribute("message", resultMessage);
             } else {
-                // Nếu kết quả là cảnh báo (chưa xếp được)
                 redirectAttributes.addFlashAttribute("errorMessage", resultMessage);
             }
-
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Lỗi hệ thống khi xếp lớp: " + e.getMessage());
         }
-        // Redirect về trang quản lý lớp để thấy sự thay đổi
         return "redirect:/classes/add";
     }
-    @GetMapping("/list")
-    public String listStudents(Model model) {
-        List<StudentDetailDTO> studentDetails = studentService.getAllStudentDetails();
 
-        // 1. Gọi phương thức tính toán dữ liệu biểu đồ Học lực
-        Map<String, Object> academicChartData = studentService.calculateOverallAcademicDistribution();
-
-        // 2. Gọi phương thức tính toán dữ liệu biểu đồ Chuyên ngành (MỚI)
-        Map<String, Object> majorChartData = studentService.calculateMajorDistribution();
-
-        // 3. Thêm dữ liệu vào model
-        model.addAttribute("students", studentDetails);
-        model.addAttribute("academicChartData", academicChartData); // Đổi tên key
-        model.addAttribute("majorChartData", majorChartData);       // Dữ liệu biểu đồ mới
-
-        return "student-list";
+    @GetMapping("/export-excel")
+    public void exportToExcel(HttpServletResponse response) throws IOException {
+        response.setContentType("application/octet-stream");
+        DateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
+        String currentDateTime = dateFormatter.format(new Date());
+        String headerKey = "Content-Disposition";
+        String headerValue = "attachment; filename=BaoCao_SinhVien_" + currentDateTime + ".xlsx";
+        response.setHeader(headerKey, headerValue);
+        byte[] excelBytes = excelExportService.exportStudentDetailsToExcel();
+        response.getOutputStream().write(excelBytes);
     }
-    @PostMapping("/upload-excel")
-    public String uploadExcelFile(@RequestParam("file") MultipartFile file, RedirectAttributes redirectAttributes) {
-        if (file.isEmpty()) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Vui lòng chọn một file để tải lên.");
-            return "redirect:/students/list";
-        }
-
-        try {
-            studentService.importStudentsFromExcel(file);
-            redirectAttributes.addFlashAttribute("message", "Nhập dữ liệu sinh viên từ file Excel thành công!");
-        } catch (Exception e) {
-            e.printStackTrace();
-            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi khi nhập dữ liệu: " + e.getMessage());
-        }
-
-        return "redirect:/students/list";
-    }
-
 }
