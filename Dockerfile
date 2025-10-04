@@ -1,7 +1,3 @@
-FROM ubuntu:latest
-LABEL authors="Admin"
-
-ENTRYPOINT ["top", "-b"]
 # Sử dụng một phiên bản Java 17 gọn nhẹ làm nền
 FROM openjdk:17-jdk-slim
 
@@ -10,6 +6,9 @@ WORKDIR /app
 
 # Copy file pom.xml và các file mã nguồn vào container
 COPY . .
+
+# Cấp quyền thực thi cho file mvnw để sửa lỗi "Permission denied"
+RUN chmod +x ./mvnw
 
 # Chạy lệnh Maven để build project. Lệnh này sẽ tải các dependency và tạo ra file .jar
 RUN ./mvnw clean install -DskipTests
