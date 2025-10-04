@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Sửa Lớp học</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f4f7f6; /* Nền xám nhạt */
+        }
+        .card-custom {
+            border: none;
+            border-radius: 1rem;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1); /* Shadow nhẹ */
+        }
+        .form-label {
+            font-weight: 600;
+            color: #2c3e50; /* Màu chữ đậm */
+        }
+        .btn-info {
+            background-color: #17a2b8; /* Màu xanh ngọc */
+            border-color: #17a2b8;
+            transition: background-color 0.3s;
+        }
+        .btn-info:hover {
+            background-color: #117a8b;
+            border-color: #0b5e6f;
+        }
+        .alert-custom {
+            padding: 0.75rem 1.25rem;
+            margin-bottom: 1rem;
+            border-radius: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+<div class="container mt-5 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-7 col-md-9">
+            <div class="card card-custom">
+                <div class="card-header bg-info text-white text-center py-3 rounded-top">
+                    <h2 class="mb-0">
+                        <i class="fas fa-chalkboard-teacher me-2"></i> Chỉnh Sửa Thông Tin Lớp Học
+                    </h2>
+                </div>
+                <div class="card-body p-4 p-md-5">
+                    <h4 class="text-info mb-4">Lớp: <span th:text="${classManager.className}"></span></h4>
+
+                    <form th:action="@{/classes/edit}" th:object="${classManager}" method="post">
+
+                        <input type="hidden" th:field="*{idClass}">
+                        <input type="hidden" th:field="*{soLuongSinhVienHienTai}">
+
+                        <div class="mb-4">
+                            <label for="className" class="form-label d-flex align-items-center">
+                                <i class="fas fa-tag me-2 text-info"></i> Tên Lớp:
+                            </label>
+                            <input type="text" class="form-control" id="className" th:field="*{className}" placeholder="Ví dụ: Lớp CNTT K18" required>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="khoaHoc" class="form-label d-flex align-items-center">
+                                <i class="fas fa-graduation-cap me-2 text-info"></i> Khoa / Chuyên ngành (của Lớp):
+                            </label>
+                            <select class="form-select" id="khoaHoc" th:field="*{khoaHoc}" required
+                                    th:disabled="${classManager.trangThai != 'Sắp khai giảng'}">
+                                <option value="">-- Chọn Khoa/Chuyên ngành --</option>
+                                <option value="Công nghệ thông tin">Công nghệ thông tin</option>
+                                <option value="Khoa học máy tính">Khoa học máy tính</option>
+                                <option value="Kinh tế">Kinh tế</option>
+                                <option value="Y học">Y học</option>
+                                <option value="Khoa khác">Khoa khác</option>
+                            </select>
+
+                            <input type="hidden" th:if="${classManager.trangThai != 'Sắp khai giảng'}" th:field="*{khoaHoc}" />
+
+                            <small th:if="${classManager.trangThai != 'Sắp khai giảng'}" class="form-text text-danger mt-2">
+                                <i class="fas fa-lock me-1"></i> Khoa/Chuyên ngành bị khóa vì lớp đang **Hoạt động** hoặc đã **Kết thúc**.
+                            </small>
+                            <small th:unless="${classManager.trangThai != 'Sắp khai giảng'}" class="form-text text-success mt-2">
+                                <i class="fas fa-check-circle me-1"></i> Bạn có thể thay đổi Khoa/Chuyên ngành.
+                            </small>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="trangThai" class="form-label d-flex align-items-center">
+                                <i class="fas fa-sync-alt me-2 text-info"></i> Trạng thái lớp:
+                            </label>
+                            <select class="form-select" id="trangThai" th:field="*{trangThai}" required>
+                                <option value="Đang hoạt động">Đang hoạt động</option>
+                                <option value="Sắp khai giảng">Sắp khai giảng</option>
+                                <option value="Đã kết thúc">Đã kết thúc</option>
+                            </select>
+                            <small class="form-text text-muted mt-2">Thay đổi trạng thái có thể ảnh hưởng đến việc xếp lớp tự động.</small>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="soLuongSinhVien" class="form-label d-flex align-items-center">
+                                <i class="fas fa-users me-2 text-info"></i> Số lượng Sinh viên tối đa (Chỉ tiêu):
+                            </label>
+                            <input type="number" step="1" min="1" class="form-control" id="soLuongSinhVien" th:field="*{soLuongSinhVien}" placeholder="Nhập chỉ tiêu (ví dụ: 40)" required>
+                            <small class="form-text text-muted mt-2">Chỉ tiêu tối đa cho lớp học này.</small>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-5 pt-3 border-top">
+                            <button type="submit" class="btn btn-info btn-lg">
+                                <i class="fas fa-save me-2"></i> Lưu Thay Đổi
+                            </button>
+                            <a th:href="@{/students/list}" class="btn btn-secondary btn-lg">
+                                <i class="fas fa-times me-2"></i> Hủy bỏ
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

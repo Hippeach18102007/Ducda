@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Sửa Sinh viên</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa; /* Nền nhẹ nhàng */
+        }
+        .card-custom {
+            border: none;
+            border-radius: 1rem;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15); /* Shadow nhẹ */
+        }
+        .form-label {
+            font-weight: 600;
+            color: #34495e; /* Màu chữ đậm hơn */
+        }
+        .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+            transition: background-color 0.3s;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+            border-color: #004085;
+        }
+    </style>
+</head>
+<body>
+<div class="container mt-5 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <div class="card card-custom">
+                <div class="card-header bg-primary text-white text-center py-3 rounded-top">
+                    <h2 class="mb-0">
+                        <i class="fas fa-user-edit me-2"></i> Chỉnh Sửa Thông Tin Sinh viên
+                    </h2>
+                </div>
+                <div class="card-body p-4 p-md-5">
+                    <h4 class="text-secondary mb-4">Sinh viên: <span th:text="${student.studentName}"></span></h4>
+
+                    <div th:if="${errorMessage}" class="alert alert-danger" role="alert" th:text="${errorMessage}"></div>
+
+                    <form th:action="@{/students/edit}" th:object="${student}" method="post">
+
+                        <input type="hidden" th:field="*{id}">
+
+                        <div class="mb-4">
+                            <label for="studentName" class="form-label d-flex align-items-center">
+                                <i class="fas fa-signature me-2 text-primary"></i> Tên Sinh viên:
+                            </label>
+                            <input type="text" class="form-control" id="studentName" th:field="*{studentName}" placeholder="Nhập tên sinh viên" required>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="email" class="form-label d-flex align-items-center">
+                                <i class="fas fa-envelope me-2 text-primary"></i> Email:
+                            </label>
+                            <input type="email" class="form-control" id="email" th:field="*{email}" placeholder="example@gmail.com" required>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="sdt" class="form-label d-flex align-items-center">
+                                <i class="fas fa-phone me-2 text-primary"></i> Số điện thoại (SĐT):
+                            </label>
+                            <input type="text" class="form-control" id="sdt" th:field="*{sdt}" placeholder="Nhập số điện thoại" required>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="chuyenNganh" class="form-label d-flex align-items-center">
+                                <i class="fas fa-book me-2 text-primary"></i> Chuyên ngành:
+                            </label>
+                            <select class="form-select" id="chuyenNganh" th:field="*{chuyenNganh}" required
+                                    th:disabled="${student.idClass != null and student.idClass != 0}">
+                                <option value="">-- Chọn chuyên ngành --</option>
+                                <option value="Công nghệ thông tin">Công nghệ thông tin</option>
+                                <option value="Khoa học máy tính">Khoa học máy tính</option>
+                                <option value="Kinh tế">Kinh tế</option>
+                                <option value="Y học">Y học</option>
+                            </select>
+
+                            <input type="hidden" th:if="${student.idClass != null and student.idClass != 0}" th:field="*{chuyenNganh}" />
+
+                            <small th:if="${student.idClass != null and student.idClass != 0}" class="form-text text-warning mt-2">
+                                <i class="fas fa-lock me-1"></i> Chuyên ngành bị **khóa** vì sinh viên đã được xếp lớp.
+                            </small>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="idClass" class="form-label d-flex align-items-center">
+                                <i class="fas fa-chalkboard-teacher me-2 text-primary"></i> Lớp học:
+                            </label>
+                            <select class="form-select" id="idClass" th:field="*{idClass}" required
+                                    th:disabled="${student.idClass != null and student.idClass != 0}">
+                                <option value="0">-- Chưa xếp lớp / Phân lớp tự động --</option>
+
+                                <option th:each="class : ${classes}"
+                                        th:value="${class.idClass}"
+                                        th:text="|${class.className} (${class.khoaHoc})|">
+                                    CNTT1 (Khoa CNTT)
+                                </option>
+                            </select>
+
+                            <input type="hidden" th:if="${student.idClass != null and student.idClass != 0}" th:field="*{idClass}" />
+
+                            <small th:if="${student.idClass != null and student.idClass != 0}" class="form-text text-warning mt-2">
+                                <i class="fas fa-lock me-1"></i> Lớp học bị **khóa** vì sinh viên đã được xếp lớp.
+                            </small>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-5">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-save me-2"></i> Lưu Thay Đổi
+                            </button>
+                            <a th:href="@{/students/list}" class="btn btn-secondary btn-lg">
+                                <i class="fas fa-times me-2"></i> Hủy bỏ
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

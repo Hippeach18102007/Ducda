@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+
+<!-- Language Switcher Fragment -->
+<div th:fragment="language-switcher" class="language-switcher d-flex justify-content-end align-items-center gap-2 mb-3">
+    <div class="d-flex align-items-center gap-2">
+        <span class="text-muted small" th:text="#{lang.switch.tooltip}">Switch language:</span>
+        
+        <!-- Vietnamese Button -->
+        <a th:href="@{/change-locale(lang=vi)}" 
+           th:class="'btn btn-sm d-flex align-items-center gap-1 ' + (${#locale.language == 'vi'} ? 'btn-primary' : 'btn-outline-primary')"
+           th:title="#{lang.switch.tooltip}"
+           style="text-decoration: none; min-width: 120px; justify-content: center;">
+            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMTUiIHZpZXdCb3g9IjAgMCAyMCAxNSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjIwIiBoZWlnaHQ9IjE1IiBmaWxsPSIjREEwMjAyIi8+Cjxwb2x5Z29uIHBvaW50cz0iMTAsNC41IDEyLDcgOCw3IiBmaWxsPSIjRkZEQjAwIi8+CjxwYXRoIGQ9Im0xMCw2LjVsMS4zLDRoLTIuNmwxLjMtNCIgZmlsbD0iI0ZGREIwMCIvPgo8L3N2Zz4K" 
+                 alt="Vietnamese Flag" style="width: 16px; height: 12px; border-radius: 2px;">
+            <span th:text="#{lang.vietnamese}">Tiếng Việt</span>
+        </a>
+        
+        <!-- English Button -->
+        <a th:href="@{/change-locale(lang=en)}" 
+           th:class="'btn btn-sm d-flex align-items-center gap-1 ' + (${#locale.language == 'en'} ? 'btn-primary' : 'btn-outline-primary')"
+           th:title="#{lang.switch.tooltip}"
+           style="text-decoration: none; min-width: 120px; justify-content: center;">
+            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMTUiIHZpZXdCb3g9IjAgMCAyMCAxNSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjIwIiBoZWlnaHQ9IjE1IiBmaWxsPSIjMDEyMzY5Ii8+CjxwYXRoIGQ9Im0wLDBsNS45LDQuNWgtNS45djYuNWg1Ljl2LTYuNWwxNC4xLDEwdjEuNWgtMjB2LTE1aDE1LjNsLTE0LjEsMTB2LTYuNWg1Ljl2LTQuNWgtNS45di0xLjVoMjB2MTV2LTE1eiIgZmlsbD0iI2ZmZiIvPgo8cGF0aCBkPSJtMCwwaDIwdjE1aC0yMHYtMTV6bTAsMHYxNWwyMC0xNXptMCwxNWgyMGwtMjAtMTV6IiBzdHJva2U9IiNEODA3MjciIHN0cm9rZS13aWR0aD0iMSIgZmlsbD0ibm9uZSIvPgo8cGF0aCBkPSJtMCw3LjVoMjBtLTEwLC03LjV2MTV6IiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIvPgo8cGF0aCBkPSJtMCw3LjVoMjBtLTEwLC03LjV2MTV6IiBzdHJva2U9IiNEODA3MjciIHN0cm9rZS13aWR0aD0iMSIgZmlsbD0ibm9uZSIvPgo8L3N2Zz4K" 
+                 alt="English Flag" style="width: 16px; height: 12px; border-radius: 2px;">
+            <span th:text="#{lang.english}">English</span>
+        </a>
+    </div>
+</div>
+
+<style>
+.language-switcher .btn {
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.language-switcher .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.language-switcher .btn.btn-primary {
+    background-color: #007bff;
+    border-color: #007bff;
+    color: white;
+    font-weight: 600;
+}
+
+.language-switcher .btn.btn-outline-primary:hover {
+    background-color: #007bff;
+    border-color: #007bff;
+    color: white;
+}
+</style>
+
+</body>
+</html>

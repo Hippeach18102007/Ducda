@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Thêm Sinh viên Mới</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa; /* Nền nhẹ nhàng */
+        }
+        .card-custom {
+            border-left: 5px solid #0d6efd; /* Đường viền nổi bật màu primary */
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Thêm đổ bóng nhẹ */
+        }
+        .form-header {
+            background-color: #0d6efd; /* Màu nền cho tiêu đề */
+            color: white;
+            padding: 1rem 1.5rem;
+        }
+    </style>
+</head>
+<body>
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card card-custom shadow-lg">
+                <div class="card-header form-header">
+                    <h1 class="mb-0 fs-3"><i class="fas fa-user-plus me-2"></i> Thêm Sinh viên Mới</h1>
+                </div>
+                <div class="card-body">
+
+                    <div th:if="${errorMessage}" class="alert alert-danger" role="alert">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <span th:text="${errorMessage}">Lỗi: Lớp đã đủ chỉ tiêu hoặc không tìm thấy lớp trống.</span>
+                    </div>
+
+                    <form th:action="@{/students/add}" th:object="${student}" method="post">
+
+                        <h5 class="mb-3 text-primary"><i class="fas fa-info-circle me-2"></i> Thông tin Cá nhân</h5>
+                        <div class="mb-3">
+                            <label for="studentName" class="form-label"><i class="fas fa-user me-1"></i> Tên Sinh viên:</label>
+                            <input type="text" class="form-control" id="studentName" th:field="*{studentName}" required>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="email" class="form-label"><i class="fas fa-envelope me-1"></i> Email:</label>
+                                <input type="email" class="form-control" id="email" th:field="*{email}" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="sdt" class="form-label"><i class="fas fa-phone me-1"></i> Số Điện Thoại:</label>
+                                <input type="text" class="form-control" id="sdt" th:field="*{sdt}" required>
+                            </div>
+                        </div>
+
+                        <hr class="mt-4 mb-4"/>
+
+                        <h5 class="mb-3 text-primary"><i class="fas fa-school me-2"></i> Thông tin Phân lớp</h5>
+                        <div class="mb-3">
+                            <label for="chuyenNganh" class="form-label"><i class="fas fa-graduation-cap me-1"></i> Chuyên ngành:</label>
+                            <select class="form-select" id="chuyenNganh" th:field="*{chuyenNganh}" required>
+                                <option value="">-- Chọn chuyên ngành --</option>
+                                <option value="Công nghệ thông tin">Công nghệ thông tin</option>
+                                <option value="Khoa học máy tính">Khoa học máy tính</option>
+                                <option value="Kinh tế">Kinh tế</option>
+                                <option value="Y học">Y học</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="idClass" class="form-label"><i class="fas fa-chalkboard-teacher me-1"></i> Lớp học:</label>
+                            <select class="form-select" id="idClass" th:field="*{idClass}">
+                                <option value="0">-- Phân lớp tự động --</option>
+
+                                <option th:each="class : ${classes}"
+                                        th:value="${class.idClass}"
+                                        th:data-khoa-hoc="${class.khoaHoc}"
+                                        th:text="|${class.className} (${class.khoaHoc})|">
+                                </option>
+                            </select>
+                            <small class="form-text mt-2">
+                                <span id="autoAssignTip">Mặc định: Hệ thống sẽ tự động xếp lớp còn chỉ tiêu.</span>
+                            </small>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="submit" class="btn btn-primary fw-bold"><i class="fas fa-user-plus me-2"></i> Thêm Sinh viên</button>
+                            <a th:href="@{/students/list}" class="btn btn-secondary"><i class="fas fa-times me-2"></i> Hủy bỏ</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const majorSelect = document.getElementById('chuyenNganh');
+        const classSelect = document.getElementById('idClass');
+        const autoAssignTip = document.getElementById('autoAssignTip');
+
+        // Lưu lại tất cả các options lớp học (trừ option '0' tự động)
+        const classOptions = Array.from(classSelect.querySelectorAll('option'))
+            .filter(option => option.value !== '0');
+
+        function filterClasses() {
+            const selectedMajor = majorSelect.value;
+
+            // Ẩn tất cả các tùy chọn lớp học (có giá trị thật)
+            classOptions.forEach(option => option.style.display = 'none');
+
+            // Hiển thị tùy chọn '0' (Phân lớp tự động)
+            classSelect.querySelector('option[value="0"]').style.display = 'block';
+
+            if (selectedMajor === "") {
+                // Nếu chưa chọn chuyên ngành, đặt lại về tự động
+                classSelect.value = '0';
+                autoAssignTip.textContent = '⚠️ Hãy chọn Chuyên ngành để xem các lớp phù hợp hoặc kích hoạt Phân lớp tự động.';
+                autoAssignTip.className = 'text-warning';
+                return;
+            }
+
+            // Lọc và hiển thị các lớp phù hợp
+            let classesFound = 0;
+            classOptions.forEach(option => {
+                const khoaHoc = option.getAttribute('data-khoa-hoc');
+                // Hiển thị nếu Khoa của lớp khớp với Chuyên ngành đã chọn
+                if (khoaHoc === selectedMajor) {
+                    option.style.display = 'block';
+                    classesFound++;
+                }
+            });
+
+            // Cập nhật thông báo
+            if (classesFound > 0) {
+                autoAssignTip.textContent = `Mặc định: Hệ thống sẽ tự động xếp lớp còn chỉ tiêu cho chuyên ngành ${selectedMajor}.`;
+                autoAssignTip.className = 'text-muted';
+            } else {
+                autoAssignTip.textContent = `❗ Không có lớp nào hiện tại cho chuyên ngành ${selectedMajor}. Sinh viên sẽ được thêm vào danh sách "Chưa xếp lớp".`;
+                autoAssignTip.className = 'text-danger';
+            }
+
+
+            // Nếu lớp đang được chọn không còn phù hợp với chuyên ngành mới, đặt lại về "Tự động"
+            const currentSelectedOption = classSelect.querySelector('option:checked');
+            const currentClassKhoaHoc = currentSelectedOption ? currentSelectedOption.getAttribute('data-khoa-hoc') : null;
+
+            if (classSelect.value !== '0' && currentClassKhoaHoc !== selectedMajor) {
+                classSelect.value = '0';
+            }
+        }
+
+        // Chạy lần đầu khi form load
+        filterClasses();
+
+        // Lắng nghe sự kiện thay đổi của chuyên ngành
+        majorSelect.addEventListener('change', filterClasses);
+    });
+</script>
+</body>
+</html>

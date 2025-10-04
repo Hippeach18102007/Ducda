@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="#{page.title.studentList}">Danh sách Sinh viên</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <style>
+        /* CSS cho badge trạng thái lớp */
+        .badge-arranging {
+            background-color: #ffc107; /* Màu vàng */
+            color: #212529; /* Màu chữ đen */
+        }
+        .carousel-control-prev, .carousel-control-next {
+            width: 8%; /* Tăng khu vực bấm một chút */
+        }
+        .carousel-control-prev-icon, .carousel-control-next-icon {
+            background-color: #343a40; /* Màu tối cho icon */
+            border-radius: 50%;
+            padding: 1.5rem;
+            opacity: 0.8;
+        }
+        .carousel-control-prev:hover .carousel-control-prev-icon,
+        .carousel-control-next:hover .carousel-control-next-icon {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="text-primary" th:text="#{header.studentList}">Danh sách Sinh viên</h1>
+
+        <div class="dropdown">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" th:title="#{lang.switch.tooltip}">
+                <i class="fas fa-globe"></i> <span th:text="#{general.language?:'Ngôn ngữ'}">Ngôn ngữ</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                    <a class="dropdown-item" th:href="@{/students/list(lang='vi')}">
+                        <span th:text="#{lang.vietnamese}">Tiếng Việt</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" th:href="@{/students/list(lang='en')}">
+                        <span th:text="#{lang.english}">English</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    </div>
+
+    <div th:if="${message}" class="alert alert-success" role="alert"><span th:text="${message}"></span></div>
+
+    <div class="mb-3 d-flex gap-2">
+        <a th:href="@{/students/add}" class="btn btn-success"><span th:text="#{student.button.add}">➕ Thêm Sinh viên</span></a>
+        <a th:href="@{/classes/add}" class="btn btn-info"><span th:text="#{button.addClass}">🏫 Thêm Lớp học</span></a>
+        <a th:href="@{/diems/add}" class="btn btn-warning"><span th:text="#{button.addScore}">💯 Thêm Điểm</span></a>
+        <a th:href="@{/students/export-excel}" class="btn btn-secondary">
+            <i class="fas fa-file-excel"></i> <span th:text="#{button.exportExcel}">Xuất Báo cáo Excel</span>
+        </a>
+    </div>
+
+    <hr/>
+
+    <h2 class="mt-5 mb-3 text-primary" th:text="#{header.chart}">Biểu đồ Thống kê Sinh viên</h2>
+    <div class="row mb-5">
+        <div class="col-md-8 offset-md-2">
+            <div class="card shadow-lg"> <div class="card-body">
+                <div id="chartCarousel" class="carousel slide">
+
+                    <div class="carousel-inner">
+
+                        <div class="carousel-item active">
+                            <div class="text-center bg-primary text-white p-2 mb-4 rounded">
+                                <h4 class="mb-0" th:text="#{chart.cardHeader}">Tỷ lệ Sinh viên theo Xếp loại (Dựa trên GPA)</h4>
+                            </div>
+                            <p class="text-center text-muted">
+                                <span th:text="#{chart.totalStudentsLabel}">Tổng số SV được đánh giá (đã có điểm):</span>
+                                <strong th:text="${academicChartData != null ? academicChartData.get('totalStudentsChecked') : 0}">0</strong>
+                            </p>
+                            <canvas id="academicPieChart" style="max-height: 400px;"></canvas>
+                            <p th:if="${academicChartData == null or academicChartData.get('totalStudentsChecked') == 0}" class="text-center text-danger mt-3" th:text="#{chart.noData}">
+                                Chưa có sinh viên nào được thêm điểm để đánh giá.
+                            </p>
+                        </div>
+
+                        <div class="carousel-item">
+                            <div class="text-center bg-secondary text-white p-2 mb-4 rounded">
+                                <h4 class="mb-0">Phân bổ Sinh viên theo Chuyên ngành</h4>
+                            </div>
+                            <p class="text-center text-muted">
+                                <span th:text="|#{chart.totalStudentsLabel} (Tổng SV):|">Tổng số Sinh viên:</span>
+                                <strong th:text="${majorChartData != null ? majorChartData.get('totalStudents') : 0}">0</strong>
+                            </p>
+                            <canvas id="majorBarChart" style="max-height: 400px;"></canvas>
+                            <p th:if="${majorChartData == null or majorChartData.get('totalStudents') == 0}" class="text-center text-danger mt-3">
+                                Chưa có sinh viên nào trong hệ thống.
+                            </p>
+                        </div>
+
+                    </div>
+
+                    <button class="carousel-control-prev" type="button" data-bs-target="#chartCarousel" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Previous</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#chartCarousel" data-bs-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Next</span>
+                    </button>
+
+                </div>
+            </div>
+            </div>
+        </div>
+    </div>
+    <hr/>
+
+    <table class="table table-bordered table-striped">
+        <thead class="table-dark">
+        <tr>
+            <th th:text="#{table.header.id}">ID</th>
+            <th th:text="#{table.header.studentName}">Tên Sinh viên</th>
+            <th th:text="#{table.header.email}">Email</th>
+            <th th:text="#{table.header.phone}">SĐT</th>
+            <th th:text="#{table.header.major}">Chuyên ngành</th>
+            <th th:text="#{table.header.class}">Lớp học</th>
+            <th th:text="#{table.header.course}">Khóa học</th>
+            <th th:text="#{table.header.classStatus}">Trạng thái lớp</th>
+            <th th:text="#{table.header.enrollment}">Số SV/Chỉ tiêu</th>
+            <th th:text="#{table.header.totalScores}">Tổng số môn điểm</th>
+            <th th:text="#{table.header.actions}">Hành động</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="student : ${students}">
+            <td th:text="${student.studentId}"></td>
+            <td th:text="${student.studentName}"></td>
+            <td th:text="${student.email}"></td>
+            <td th:text="${student.sdt}"></td>
+            <td th:text="${student.chuyenNganh}"></td>
+
+            <td colspan="4" th:if="${student.classInfo == null}">
+                <span class="badge badge-arranging text-dark p-2" th:text="#{status.arrangingClass}">
+                    ⏳ Hệ thống đang sắp xếp lớp học cho bạn
+                </span>
+            </td>
+
+            <td th:unless="${student.classInfo == null}">
+                <span th:text="${student.classInfo.className}"></span>
+            </td>
+            <td th:unless="${student.classInfo == null}" th:text="${student.classInfo.khoaHoc}"></td>
+            <td th:unless="${student.classInfo == null}" th:text="${student.classInfo.trangThai}"></td>
+            <td th:unless="${student.classInfo == null}" th:text="|${student.classInfo.soLuongSinhVienHienTai} / ${student.classInfo.soLuongSinhVien}|"></td>
+
+            <td th:text="${student.scores != null ? student.scores.size() : 0}"></td>
+
+            <td>
+                <a th:href="@{/students/detail/{id}(id=${student.studentId})}" class="btn btn-sm btn-info" th:text="#{button.viewDetails}">
+                    Xem chi tiết
+                </a>
+                <a th:href="@{/students/delete/{id}(id=${student.studentId})}"
+                   class="btn btn-sm btn-danger"
+                   th:onclick="|return confirm('[[#{confirm.deleteStudent}]]');|"
+                   th:text="#{button.delete}">
+                    Xóa
+                </a>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    // Dữ liệu từ Controller
+    const academicChartData = /*[[${academicChartData}]]*/ null;
+    const majorChartData = /*[[${majorChartData}]]*/ null;
+
+    // Lấy các message keys cần thiết cho Chart.js
+    const chartMessages = {
+        label: /*[[#{chart.tooltip.label}]]*/ 'Số lượng Sinh viên',
+        studentUnit: /*[[#{chart.tooltip.studentUnit}]]*/ 'SV'
+    };
+
+    // Định nghĩa nhãn xếp loại
+    const rankingLabels = {
+        "Xuất sắc": /*[[#{ranking.excellent}]]*/ 'Xuất sắc',
+        "Giỏi": /*[[#{ranking.good}]]*/ 'Giỏi',
+        "Khá": /*[[#{ranking.fair}]]*/ 'Khá',
+        "Trung bình": /*[[#{ranking.average}]]*/ 'Trung bình',
+        "Yếu": /*[[#{ranking.weak}]]*/ 'Yếu',
+        "Kém": /*[[#{ranking.poor}]]*/ 'Kém'
+    };
+
+    // --- LOGIC VẼ BIỂU ĐỒ 1: HỌC LỰC (PIE) ---
+    function drawAcademicChart() {
+        if (!academicChartData || (academicChartData.counts && Object.keys(academicChartData.counts).length === 0)) return;
+
+        const chartCounts = academicChartData.counts || {};
+        const statusOrderKeys = ["Xuất sắc", "Giỏi", "Khá", "Trung bình", "Yếu", "Kém"];
+        const statusColors = {
+            "Xuất sắc": '#28a745', // Xanh lá
+            "Giỏi": '#007bff',    // Xanh dương
+            "Khá": '#ffc107',     // Vàng
+            "Trung bình": '#17a2b8', // Xanh nhạt
+            "Yếu": '#fd7e14',     // Cam
+            "Kém": '#dc3545'      // Đỏ
+        };
+
+        const labels = [];
+        const dataValues = [];
+        const backgroundColors = [];
+
+        statusOrderKeys.forEach(statusKey => {
+            const count = chartCounts[statusKey] || 0;
+            if (count > 0) {
+                labels.push(rankingLabels[statusKey] || statusKey);
+                dataValues.push(count);
+                backgroundColors.push(statusColors[statusKey]);
+            }
+        });
+
+        if (dataValues.length > 0) {
+            const ctx = document.getElementById('academicPieChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut', // THAY ĐỔI: Sử dụng Doughnut Chart cho giao diện đẹp hơn
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: chartMessages.label,
+                        data: dataValues,
+                        backgroundColor: backgroundColors,
+                        hoverOffset: 10, // Tăng hiệu ứng hover
+                        borderColor: '#ffffff', // Viền trắng
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    const value = context.parsed;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1) + '%'; // 1 chữ số thập phân
+                                    return `${label}: ${value} ${chartMessages.studentUnit} (${percentage})`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    // --- LOGIC VẼ BIỂU ĐỒ 2: CHUYÊN NGÀNH (BAR) ---
+    function drawMajorChart() {
+        if (!majorChartData || (majorChartData.majorCounts && Object.keys(majorChartData.majorCounts).length === 0)) return;
+
+        const majorCounts = majorChartData.majorCounts || {};
+        const labels = Object.keys(majorCounts);
+        const dataValues = Object.values(majorCounts);
+
+        // Tạo màu sắc ngẫu nhiên/nhất quán cho các cột
+        const backgroundColors = labels.map((_, index) => {
+            const colors = ['#007bff', '#28a745', '#ffc107', '#dc3545', '#17a2b8', '#6610f2'];
+            return colors[index % colors.length];
+        });
+
+        if (dataValues.length > 0) {
+            const ctx = document.getElementById('majorBarChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Số lượng Sinh viên',
+                        data: dataValues,
+                        backgroundColor: backgroundColors,
+                        borderColor: backgroundColors.map(color => color.replace('ff', 'aa')), // Màu viền đậm hơn
+                        borderWidth: 1.5,
+                        borderRadius: 5 // Bo góc cho cột
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false } // Ẩn legend cho Bar Chart
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false } // Ẩn lưới trục X
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Số lượng Sinh viên'
+                            },
+                            ticks: {
+                                // Đảm bảo số lượng luôn là số nguyên
+                                callback: function(value) { if (value % 1 === 0) { return value; } }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    // --- GỌI HÀM VẼ BIỂU ĐỒ KHI TẢI TRANG ---
+    drawAcademicChart();
+    drawMajorChart();
+
+    /*]]>*/
+</script>
+</body>
+</html>
