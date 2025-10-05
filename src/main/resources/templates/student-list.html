@@ -7,36 +7,14 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <style>
-        body {
-            background-color: #f8f9fa; /* Nền xám nhạt cho toàn trang */
-        }
-        .card {
-            border: none; /* Bỏ viền mặc định của card */
-            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-        }
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
-        }
-        .table-hover tbody tr:hover {
-            background-color: #e9ecef; /* Màu nền khi hover vào dòng của bảng */
-            cursor: pointer;
-        }
-        .badge-arranging {
-            background-color: #ffc107;
-            color: #212529;
-        }
-        .carousel-control-prev-icon, .carousel-control-next-icon {
-            background-color: rgba(0, 0, 0, 0.5);
-            border-radius: 50%;
-            padding: 1.5rem;
-        }
-        .table th, .table td {
-            vertical-align: middle;
-        }
-        .action-buttons a {
-            margin: 0 4px;
-        }
+        body { background-color: #f8f9fa; }
+        .card { border: none; transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out; }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important; }
+        .table-hover tbody tr:hover { background-color: #e9ecef; cursor: pointer; }
+        .badge-arranging { background-color: #ffc107; color: #212529; }
+        .carousel-control-prev-icon, .carousel-control-next-icon { background-color: rgba(0, 0, 0, 0.5); border-radius: 50%; padding: 1.5rem; }
+        .table th, .table td { vertical-align: middle; }
+        .action-buttons a { margin: 0 4px; }
     </style>
 </head>
 <body>
@@ -76,8 +54,14 @@
         <div class="card-body p-3">
             <div class="d-flex flex-wrap gap-2">
                 <a th:href="@{/students/add}" class="btn btn-success"><i class="fas fa-user-plus me-2"></i><span th:text="#{student.button.add}"></span></a>
-                <a th:href="@{/classes/add}" class="btn btn-info"><i class="fas fa-school me-2"></i><span th:text="#{button.addClass}"></span></a>
+                <a th:href="@{/classes/list}" class="btn btn-info"><i class="fas fa-school me-2"></i><span th:text="#{button.addClass}"></span></a>
                 <a th:href="@{/diems/add}" class="btn btn-warning"><i class="fas fa-graduation-cap me-2"></i><span th:text="#{button.addScore}"></span></a>
+
+                <!-- NÚT MỚI ĐƯỢC THÊM VÀO ĐÂY -->
+                <a th:href="@{/warnings/list}" class="btn btn-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i><span th:text="#{button.academicWarning}"></span>
+                </a>
+
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#importExcelModal">
                     <i class="fas fa-file-import me-2"></i><span th:text="#{button.importExcel}"></span>
                 </button>
@@ -88,6 +72,7 @@
         </div>
     </div>
 
+    <!-- PHẦN CÒN LẠI CỦA TRANG (BIỂU ĐỒ, BẢNG, MODAL, SCRIPT) GIỮ NGUYÊN -->
     <!-- CHARTS CARD -->
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-light">

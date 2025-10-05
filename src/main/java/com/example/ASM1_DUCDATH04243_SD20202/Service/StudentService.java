@@ -1,9 +1,6 @@
 package com.example.ASM1_DUCDATH04243_SD20202.Service;
 
-import com.example.ASM1_DUCDATH04243_SD20202.Model.ClassManager;
-import com.example.ASM1_DUCDATH04243_SD20202.Model.DiemManager;
-import com.example.ASM1_DUCDATH04243_SD20202.Model.StudentDetailDTO;
-import com.example.ASM1_DUCDATH04243_SD20202.Model.StudentManager;
+import com.example.ASM1_DUCDATH04243_SD20202.Model.*;
 import com.example.ASM1_DUCDATH04243_SD20202.Respository.DiemRepository;
 import com.example.ASM1_DUCDATH04243_SD20202.Respository.LopHocRepository;
 import com.example.ASM1_DUCDATH04243_SD20202.Respository.StudentRepository;
@@ -30,6 +27,8 @@ public class StudentService {
     private LopHocRepository lopHocRepository;
     @Autowired
     private DiemRepository diemRepository;
+    @Autowired
+    private EmailService emailService;
 
     // ... (Các phương thức khác của bạn giữ nguyên, tôi chỉ cập nhật lại hàm importStudentsFromExcel)
 
@@ -227,8 +226,14 @@ public class StudentService {
         student.setId(studentRepository.getNextId());
         studentRepository.save(student);
 
+        // Cập nhật sĩ số và GỬI EMAIL nếu xếp lớp thành công
         if (student.getIdClass() != null && !student.getIdClass().equals(0)) {
             updateClassStudentCount(student.getIdClass());
+
+            ClassManager assignedClass = lopHocRepository.findById(student.getIdClass());
+            if (assignedClass != null) {
+                emailService.sendWelcomeEmail(student, assignedClass);
+            }
         }
     }
 
@@ -257,6 +262,7 @@ public class StudentService {
             if (oldClassId != null && !oldClassId.equals(0)) updateClassStudentCount(oldClassId);
             if (newClassId != null && !newClassId.equals(0)) updateClassStudentCount(newClassId);
         }
+
     }
 
     public void deleteStudent(Integer studentId) {
@@ -324,5 +330,35 @@ public class StudentService {
         chartData.put("majorCounts", majorCounts);
         chartData.put("totalStudents", allStudents.size());
         return chartData;
+    }
+    public List<AcademicWarningDTO> getAcademicWarnings() {
+        List<AcademicWarningDTO> warnings = new ArrayList<>();
+        List<StudentDetailDTO> allStudents = getAllStudentDetails();
+
+        // Đặt ngưỡng cảnh báo, ví dụ GPA < 5.5
+        final double WARNING_THRESHOLD = 5.5;
+
+        for (StudentDetailDTO student : allStudents) {
+            Map<String, Object> summary = calculateAcademicSummary(student);
+            boolean hasScores = (boolean) summary.getOrDefault("hasScores", false);
+
+            if (hasScores) {
+                // Parse gpa từ String về double để so sánh
+                double gpa = Double.parseDouble(((String) summary.get("gpa")).replace(',', '.'));
+
+                if (gpa < WARNING_THRESHOLD) {
+                    String status = (String) summary.get("status");
+                    String subjectToImprove = (String) summary.getOrDefault("subjectToImprove", "N/A");
+
+                    AcademicWarningDTO warningDTO = new AcademicWarningDTO(student, String.format("%.2f", gpa), status, subjectToImprove);
+                    warnings.add(warningDTO);
+                }
+            }
+        }
+
+        // Sắp xếp danh sách: sinh viên có GPA thấp nhất lên đầu
+        warnings.sort(Comparator.comparing(AcademicWarningDTO::getGpa));
+
+        return warnings;
     }
 }

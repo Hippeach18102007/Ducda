@@ -72,4 +72,9 @@ public class StudentRepository {
                 .filter(s -> s.getIdClass() != null && s.getIdClass().equals(classId))
                 .toList();
     }
+    public long countUnassignedStudents() {
+        return students.stream()
+                .filter(student -> student.getIdClass() == null || student.getIdClass().equals(0))
+                .count();
+    }
 }
