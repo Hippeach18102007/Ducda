@@ -1,24 +1,16 @@
-# Sử dụng một phiên bản Java 17 gọn nhẹ làm nền
-FROM openjdk:17-jdk-slim
+FROM eclipse-temurin:17-jdk-alpine
+WORKDIR /app
+COPY pom.xml .
+RUN mvn dependency:go-offline
+COPY src ./src
+RUN mvn clean install -DskipTests
 
-# Đặt thư mục làm việc bên trong container
+# --- Giai đoạn 2: Run ứng dụng ---
+FROM eclipse-temurin:17-jre-jammy
 WORKDIR /app
 
-# THÊM VÀO: Cập nhật và cài đặt các thư viện font cần thiết cho Apache POI
-# Lần này cài cả fontconfig và libfreetype6
-RUN apt-get update && apt-get install -y fontconfig libfreetype6
+# SỬA DÒNG NÀY: Tên file .jar phải là "ny-0.0.1-SNAPSHOT.jar"
+COPY --from=builder /app/target/ny-0.0.1-SNAPSHOT.jar app.jar
 
-# Copy file pom.xml và các file mã nguồn vào container
-COPY . .
-
-# Cấp quyền thực thi cho file mvnw để sửa lỗi "Permission denied"
-RUN chmod +x ./mvnw
-
-# Chạy lệnh Maven để build project.
-RUN ./mvnw clean install -DskipTests
-
-# Cổng mà ứng dụng Spring Boot của bạn sẽ chạy
-EXPOSE 8080
-
-# Lệnh để chạy ứng dụng ở chế độ headless
-ENTRYPOINT ["java", "-Djava.awt.headless=true", "-jar", "target/ASM1-DUCDATH04243-SD20202-0.0.1-SNAPSHOT.jar"]
+EXPOSE 9000
+ENTRYPOINT ["java", "-jar", "app.jar"]
