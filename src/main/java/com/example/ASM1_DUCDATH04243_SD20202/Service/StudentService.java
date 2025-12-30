@@ -29,6 +29,8 @@ public class StudentService {
     private DiemRepository diemRepository;
     @Autowired
     private EmailService emailService;
+    @Autowired
+    private AIService aiService;
 
     // ... (Các phương thức khác của bạn giữ nguyên, tôi chỉ cập nhật lại hàm importStudentsFromExcel)
 
@@ -361,4 +363,6 @@ public class StudentService {
 
         return warnings;
     }
+
+
 }

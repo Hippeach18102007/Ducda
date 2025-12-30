@@ -3,6 +3,7 @@ package com.example.ASM1_DUCDATH04243_SD20202.Controller;
 import com.example.ASM1_DUCDATH04243_SD20202.Model.StudentDetailDTO;
 import com.example.ASM1_DUCDATH04243_SD20202.Model.StudentManager;
 import com.example.ASM1_DUCDATH04243_SD20202.Respository.LopHocRepository;
+import com.example.ASM1_DUCDATH04243_SD20202.Respository.StudentRepository; // Thêm import này
 import com.example.ASM1_DUCDATH04243_SD20202.Service.DiemService;
 import com.example.ASM1_DUCDATH04243_SD20202.Service.ExcelExportService;
 import com.example.ASM1_DUCDATH04243_SD20202.Service.StudentService;
@@ -30,16 +31,70 @@ public class StudentController {
     @Autowired private DiemService diemService;
     @Autowired private LopHocRepository lopHocRepository;
 
+    // 👇 THÊM DÒNG NÀY ĐỂ TRUY CẬP DANH SÁCH SINH VIÊN GỐC 👇
+    @Autowired private StudentRepository studentRepository;
+
 
     @GetMapping("/list")
     public String showStudentList(Model model) {
+        // --- Phần code cũ của bạn (giữ nguyên) ---
         model.addAttribute("students", studentService.getAllStudentDetails());
-        model.addAttribute("academicChartData", studentService.calculateOverallAcademicDistribution());
-        model.addAttribute("majorChartData", studentService.calculateMajorDistribution());
+        Map<String, Object> academicChartData = studentService.calculateOverallAcademicDistribution();
+        Map<String, Object> majorChartData = studentService.calculateMajorDistribution();
+        model.addAttribute("academicChartData", academicChartData);
+        model.addAttribute("majorChartData", majorChartData);
         model.addAttribute("allMajors", diemService.getAllUniqueMajors());
         model.addAttribute("allClasses", diemService.getAllClasses());
-        return "student-list";
+
+        // ----- 👇 PHẦN CẬP NHẬT CHO AI CONTEXT BẮT ĐẦU TẠI ĐÂY 👇 -----
+
+        // 1. Tạo chuỗi tóm tắt dữ liệu sinh viên
+        List<StudentManager> allStudents = studentRepository.findAll();
+        StringBuilder studentSummary = new StringBuilder();
+        studentSummary.append("Hệ thống hiện có ").append(allStudents.size()).append(" sinh viên.\n");
+        studentSummary.append("Thông tin chi tiết một vài sinh viên (tối đa 5):\n");
+        allStudents.stream().limit(5).forEach(sv ->
+                studentSummary.append(String.format("- Tên: %s, Email: %s, Chuyên ngành: %s\n",
+                        sv.getStudentName(), sv.getEmail(), sv.getChuyenNganh()))
+        );
+
+        // 2. Tạo chuỗi tóm tắt dữ liệu biểu đồ
+        StringBuilder chartSummary = new StringBuilder();
+        chartSummary.append("Dữ liệu biểu đồ học lực:\n");
+        if (academicChartData != null && academicChartData.containsKey("counts")) {
+            try {
+                Map<String, Long> counts = (Map<String, Long>) academicChartData.get("counts");
+                counts.forEach((status, count) ->
+                        chartSummary.append(String.format("- Xếp loại %s: %d sinh viên\n", status, count))
+                );
+            } catch (Exception e) {
+                // Bỏ qua nếu cast lỗi
+            }
+        }
+        chartSummary.append("\nDữ liệu biểu đồ chuyên ngành:\n");
+        if (majorChartData != null && majorChartData.containsKey("majorCounts")) {
+            try {
+                Map<String, Long> majorCounts = (Map<String, Long>) majorChartData.get("majorCounts");
+                majorCounts.forEach((major, count) ->
+                        chartSummary.append(String.format("- Chuyên ngành %s: %d sinh viên\n", major, count))
+                );
+            } catch (Exception e) {
+                // Bỏ qua nếu cast lỗi
+            }
+        }
+
+        // 3. Đưa các chuỗi tóm tắt vào Model
+        model.addAttribute("studentDataSummary", studentSummary.toString());
+        model.addAttribute("chartDataSummary", chartSummary.toString());
+
+        // ----- KẾT THÚC PHẦN CẬP NHẬT -----
+
+        return "student-list"; // Sửa lại tên view thành "student-list"
     }
+
+    // ======================================================================
+    // CÁC HÀM CRUD VÀ CHỨC NĂNG KHÁC (GIỮ NGUYÊN, KHÔNG THAY ĐỔI)
+    // ======================================================================
 
     @PostMapping("/upload-excel")
     public String uploadExcelFile(@RequestParam("file") MultipartFile file, RedirectAttributes redirectAttributes) {
@@ -48,13 +103,11 @@ public class StudentController {
             return "redirect:/students/list";
         }
         try {
-            // Nhận kết quả chi tiết từ service
             Map<String, Object> result = studentService.importStudentsFromExcel(file);
             int successCount = (int) result.get("successCount");
             int failureCount = (int) result.get("failureCount");
             List<String> errors = (List<String>) result.get("errors");
 
-            // Tạo thông báo dựa trên kết quả
             if (failureCount == 0 && successCount > 0) {
                 redirectAttributes.addFlashAttribute("message", "Nhập thành công " + successCount + " sinh viên từ file Excel.");
             } else {
@@ -71,10 +124,6 @@ public class StudentController {
         }
         return "redirect:/students/list";
     }
-
-    // ======================================================================
-    // CÁC HÀM CRUD VÀ CHỨC NĂNG KHÁC (GIỮ NGUYÊN)
-    // ======================================================================
 
     @GetMapping("/add")
     public String showAddForm(Model model) {
